@@ -1,5 +1,5 @@
 # ============================================================
-# VELLA V6 — app.py
+# VELLA V5 — app.py
 # ============================================================
 
 # ============================================================
@@ -142,50 +142,7 @@ CFG = {
     # [설명] 디버그 라벨(시각화/추적용) 사용 여부.
     # [추천] 운영: False / 디버그 세션: True.
     # [사유] 운영 중에는 불필요한 출력/부하를 줄여 안정성 최우선.
-
-# =====================================================
-# [PRIORITY 10] BTC REGIME FILTER (V6 NEW)
-# 목적: 알트 엔트리 허용/차단을 BTC 상태로 “완화 제어”
-# =====================================================
-
-"26_BTC_REGIME_ENABLE": False,
-# [설명] BTC 레짐 필터 사용 여부
-# False: BTC 완전 무시 (v4/v5 동일)
-# True : 아래 MODE 기준으로 부분 제어
-
-"27_BTC_REGIME_MODE": "PULSE",
-# [설명] BTC 레짐 동작 모드
-# "PULSE"  : 단기 조건 충족 시에만 허용(완화형, v6 기본)
-# "STRICT" : 조건 불충족 시 전면 차단(비권장)
-# "OFF"    : ENABLE=False와 동일
-
-"28_BTC_TIMEFRAME": "5m",
-# [설명] BTC 기준 타임프레임
-# [권장] 5m (알트 엔트리 타이밍과 동기)
-
-"29_BTC_PULSE_LOOKBACK_BARS": 3,
-# [설명] 최근 N봉 내 BTC 상태 확인 범위
-# [권장] 2~5 (작을수록 공격적)
-
-"30_BTC_PULSE_MIN_MOVE_PCT": 0.15,
-# [설명] 최근 N봉 동안 BTC 최소 변동폭(%)
-# [권장] 0.10 ~ 0.30
-# [사유] BTC가 ‘살아있는 장’인지 판별
-
-"31_BTC_BLOCK_ON_SHARP_DROP": True,
-# [설명] BTC 급락 시 알트 엔트리 차단 여부
-
-"32_BTC_SHARP_DROP_PCT": -0.40,
-# [설명] BTC 단봉 급락 기준(%)
-# 예: -0.40 = 5m 기준 -0.4% 급락 시 차단
-
-"33_BTC_PULSE_TTL_BARS": 3,
-# [설명] BTC 펄스 허용 상태 유지 봉 수
-# [권장] 2~4
-# [사유] BTC 조건이 잠깐 충족돼도 알트가 따라올 시간 확보
-
 }
-
 # ============================================================
 # [ENGINE_RULE] CFG ACCESS FUNCTIONS
 # ============================================================
@@ -766,34 +723,12 @@ def execution_gate(state, cfg):
             if state.bars_since_last_entry < cfg["14_COOLDOWN_TREND_BARS"]:
                 return False                              # ER-ENTRY-007-B
 
-# =====================================================
-# [ER-BTC-001] BTC REGIME FILTER (V6)
-# - 시장 조건 필터 (LIMIT 아님)
-# - STATE 쿨다운 이후 / LIMIT 이전 평가
-# =====================================================
-
-if cfg.get("30_BTC_REGIME_ENABLE", False):
-    mode = str(cfg.get("31_BTC_REGIME_MODE", "PULSE")).upper()
-
-    if mode != "OFF":
-        ok = btc_regime_ok(state, cfg)
-
-        if mode == "STRICT":
-            if not ok:
-                return False   # ER-BTC-001-A
-        else:
-            # PULSE (완화형)
-            if not ok:
-                return False   # ER-BTC-001-B
-
-
     # ========================================================
     # [ER-ENTRY-008] LIMIT / FAIL-SAFE
     # ========================================================
     if state.entries_today >= cfg["19_MAX_ENTRIES_PER_DAY"]:
         return False                                      # ER-ENTRY-008-A
     if state.entries_in_cycle >= cfg["18_ENTRY_MAX_PER_CYCLE"]:
-  
         return False                                      # ER-ENTRY-008-B
 
     return True                                           # ER-ENTRY-003-Z
